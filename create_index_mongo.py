@@ -19,8 +19,3 @@ for index in index_fields:
     except :
         print('faild to creat index for {}'.format(index))
         continue
-"""
-print('remove duplicate tweets based on id_str')
-collection.remove({'id_str': {'$exists': False}})
-"""
-cmd = """collection.find({}, {'id_str':1}).sort({'id_str':1}).forEach(function(doc){db.tweets.remove({_id:{$gt:doc._id}, id_str:doc.id_str});})"""
