@@ -1,0 +1,135 @@
+//import raw tweets (.cmd)
+mongoimport --db asthma --collection tweets --numInsertionWorkers 4 --file temp1405
+
+//if error remove first n lines 
+sed -e '1,372d;378d' < 2014-05.txt > temp1405
+sed -e '1d;22d' < temp > temp1
+sed -e '16d' < temp3 > temp
+
+//added a sparse index/index on geo_enabled
+db.tweets.ensureIndex({geo_enabled:1},{sparse:true});
+
+//remove duplicates
+db.test.ensureIndex({screen_name: 1}, {unique: true, dropDups: true}) 
+
+//add an index
+db.tweets.ensureIndex({id_str: 1});
+
+db.tweets.ensureIndex({created_at: 1});
+db.tweets.ensureIndex({text: 1});
+db.tweets.ensureIndex({coordinates: 1});
+
+db.tweets.ensureIndex({'user.location': 1});
+db.tweets.ensureIndex({'user.id_str': 1});
+db.tweets.ensureIndex({'user.time_zone': 1});
+
+
+//added a sparse index/index on geo
+db.tweets.ensureIndex({geo:1},{sparse:true});
+
+
+
+//added index on text
+db.tweets.ensureIndex({text: 1});
+
+
+//key words--->"asthma","asthma attack","inhaler","wheezing","sneezing","runny nose"
+db.tweets.find({text: /asthma/}).count();
+db.tweets.find({text: /asthma attack/}).count();
+db.tweets.find({text: /inhaler/}).count();
+db.tweets.find({text: /wheezing/}).count();
+db.tweets.find({text: /sneezing/}).count();
+db.tweets.find({text: /nose/}).count();
+
+
+//delete tweets: userId: 40768230;154700485;67067786
+db.tweets.remove({"user.id":67067786})
+db.tweets.remove({"user.id":40768230})
+db.tweets.remove({"user.id":154700485})
+
+
+//find the number of geo tag, //wrong--->need rewrite
+db.tweets.find({$or: [{geo_enabled: {$ne: "false"}, {geo: {$ne: "null"}).count();
+
+
+
+//find the mumber of tweets per day, modify "/Oct 11/"
+db.tweets.find({created_at: /Oct 11/}).count();
+
+
+//
+db.tweets.find({"geo":{"$ne":null}}).count(); 
+db.tweets.find({"user.geo_enabled":{"$ne":false}}).count();
+
+
+db.tweets.find({"geo":{"$ne":null}}, {geo: 1});
+//wrong, different from above//db.tweets.find({"user.geo_enabled":{"$ne":false}}, {location: 1});
+
+//attribute = name and age, two column
+db.tweets.find({}, {name: 1, age: 1});
+//attribute =text
+db.tweets.find({}, {text: 1});
+
+//extract geo and created at Oct
+var tempgcn = db.tweets.find({"geo":{"$ne":null},"created_at": /Nov/}, {geo: 1,created_at:1});
+while(tempgcn.hasNext()) db.viewgcn.insert(tempgcn.next());
+
+
+// extract geo
+var temp1 = db.tweets.find({"geo":{"$ne":null}}, {geo: 1});
+while(temp1.hasNext()) db.view.insert(temp1.next());
+
+
+// extract text
+var temp2 = db.tweets.find({}, {text: 1}).limit(4500);
+while(temp2.hasNext()) db.viewtext.insert(temp2.next());
+
+
+// extract geo_enabled
+var temp3 = db.tweets.find({"user.geo_enabled":{"$ne":false}});
+while(temp3.hasNext()) db.viewgeoenabled.insert(temp3.next());
+
+
+
+//export csv
+mongoexport.exe -d temp -c view -o C:\Users\wenlizhang\workspace\CollectedTweets\geo.csv
+mongoexport.exe -d temp -c viewtext -o C:\Users\wenlizhang\workspace\CollectedTweets\text.csv
+mongoexport.exe -d twitterData -c viewgeoenabled -o C:\Users\wenlizhang\workspace\CollectedTweets\viewgeoenabled.csv
+mongoexport.exe -d twitterData -c viewgcn -o C:\Users\wenlizhang\workspace\CollectedTweets\viewgcn.csv
+
+
+
+
+
+
+mongoimport -d twitterData -c profile --file C:\Users\wenlizhang\Desktop\UserProfileLarge4000-5000.txt
+mongoimport -d twitterData -c profile --file C:\Users\wenlizhang\Desktop\UserProfile.txt
+
+mongoimport -d twitterData -c friends --file C:\Users\wenlizhang\Desktop\FriendsIDLargeExtra.txt
+
+
+var temp = db.profile_3000.find({},{screen_name:1});
+while(temp.hasNext()) db.view.insert(temp.next());
+
+mongoexport.exe -d twitterData -c view -o C:\Users\wenlizhang\Desktop\view_friends.csv
+
+var temp = db.friends.find({},{screen_name:1});
+while(temp.hasNext()) db.view.insert(temp.next());
+
+mongoimport -d facebookData -c profile --file C:\Users\wenlizhang\Desktop\facebook_profile.txt --jsonArray
+mongoimport -d facebookData -c profile --file C:\Users\wenlizhang\Desktop\facebook_profile_large.txt --jsonArray
+
+//create csv
+mongo facebookData C:\Users\wenlizhang\Desktop\createcsv.js > C:\Users\wenlizhang\Desktop\facebook_profile.csv
+
+mongoimport -d twitterData -c profile_ex --file C:\Users\wenlizhang\Desktop\UserProfile5-6_new.txt
+mongoexport.exe -d twitterData -c view -o C:\Users\wenlizhang\Desktop\view_2.csv
+
+
+
+
+// show size of each collections
+var collectionNames = db.getCollectionNames(), stats = [];
+collectionNames.forEach(function (n) { stats.push(db[n].stats()); });
+stats = stats.sort(function(a, b) { return b['size'] - a['size']; });
+for (var c in stats) { print(stats[c]['ns'] + ": " + stats[c]['size'] + " (" + stats[c]['storageSize'] + ")"); }
